@@ -8,7 +8,14 @@ EVENING_HOUR=19
 MORNING_HOUR=7
 DIMMED_PCT=30
 NORMAL_PCT=100
-BUSES="5 7"
+
+# Which org.kde.ScreenBrightness displays to control (space-separated, e.g.
+# "display0 display1"). Leave empty to auto-detect and use all of them - see
+# `gdbus call --session --dest org.kde.Solid.PowerManagement --object-path
+# /org/kde/ScreenBrightness --method org.freedesktop.DBus.Properties.Get
+# org.kde.ScreenBrightness DisplaysDBusNames` to list them, and GetAll on
+# /org/kde/ScreenBrightness/displayN to see which monitor each one is (Label).
+DISPLAYS=""
 
 # How long an on-time fade takes, vs how long a catch-up snap takes when
 # applying a change (schedule edit, PC was off, etc.) well after the fact.
@@ -18,3 +25,14 @@ SNAP_DURATION=10
 # If we're within this many seconds of a schedule boundary, treat it as an
 # on-time trigger (slow fade); otherwise it's a catch-up (fast snap).
 ONTIME_WINDOW=300
+
+# Per-display calibration: monitors vary a lot in perceived brightness at the
+# same raw percentage. A schedule target of e.g. 30% is mapped through each
+# display's own FLOOR_<display>/CEIL_<display> range (default 0/100) before
+# being applied, so you can make displays visually match instead of all
+# sharing the same raw 0-100 scale. Uncomment and adjust to taste - see
+# DISPLAYS above for how to list your display names.
+# FLOOR_display0=0
+# CEIL_display0=100
+# FLOOR_display1=20
+# CEIL_display1=90

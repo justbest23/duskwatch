@@ -2,30 +2,19 @@
 # fullscreen-brightness-watch.sh
 # Watches org.kde.KWin.NightLight's "inhibited" property (set by the
 # nightcolor-fullscreen-inhibit KWin script whenever a fullscreen/borderless
-# window is active) and snaps monitor brightness to NORMAL_PCT while a game
-# is fullscreen, restoring DIMMED_PCT when it isn't.
+# window is active) and snaps brightness to NORMAL_PCT on every display while
+# a game is fullscreen, restoring DIMMED_PCT when it isn't.
 set -uo pipefail
 cd "$(dirname "$0")"
 source lib-config.sh
-
-RETRIES=3
-
-ddc_setvcp() {
-    local bus=$1 val=$2
-    for _ in $(seq 1 "$RETRIES"); do
-        if ddcutil -b "$bus" setvcp 10 "$val" >/dev/null 2>&1; then
-            return 0
-        fi
-    done
-    echo "gloaming: bus $bus failed to set brightness to $val after $RETRIES tries" >&2
-}
 
 apply_state() {
     local inhibited=$1
     local pct=$DIMMED_PCT
     [[ "$inhibited" == "true" ]] && pct=$NORMAL_PCT
-    for bus in "${BUSES[@]}"; do
-        ddc_setvcp "$bus" "$pct"
+    for display in $(sb_displays); do
+        max=$(sb_get "$display" MaxBrightness)
+        [[ -n "$max" ]] && sb_set "$display" $(( max * $(sb_calibrated_pct "$display" "$pct") / 100 ))
     done
 }
 
