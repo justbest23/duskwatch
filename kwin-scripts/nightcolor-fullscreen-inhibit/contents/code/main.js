@@ -1,7 +1,9 @@
 function isFullscreenLike(client) {
     if (!client) return false;
+    if (client.desktopWindow || client.dock) return false;
     if (client.fullScreen) return true;
-    // Borderless fullscreen: undecorated window covering the whole output
+    if (!client.normalWindow) return false;
+    // Borderless fullscreen: undecorated normal window covering the whole output
     var output = client.output;
     if (!output) return false;
     var geo = client.frameGeometry;
@@ -33,3 +35,4 @@ function watch(client) {
 workspace.windowActivated.connect(updateForClient);
 workspace.windowAdded.connect(watch);
 workspace.windowList().forEach(watch);
+updateForClient(workspace.activeWindow);
