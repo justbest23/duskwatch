@@ -36,12 +36,13 @@ A native Plasma 6 tray applet for manual override: a brightness slider (instant,
 
 ### `tray-app/`
 
-A standalone Python tray app offering the same controls outside of Plasma's widget system, kept in sync with the Plasmoid. **Work in progress.**
+A standalone Python (PyQt6) tray app offering the same two controls (brightness slider, live-preview temperature slider) outside of Plasma's widget system — same interaction model as the Plasmoid, kept in sync with it. Pick one or the other; running both gives you two overlapping tray icons.
 
 ## Requirements
 
 - KDE Plasma 6 (6.3+, for `org.kde.ScreenBrightness`), Wayland session
 - `kwriteconfig6`, `kpackagetool6`, `gdbus` (part of a standard Plasma 6 install)
+- PyQt6 (`python-pyqt6` on Arch), only if you want the standalone tray app instead of the Plasmoid
 
 ## Install
 
