@@ -21,7 +21,7 @@ systemctl --user daemon-reload
 chmod +x brightness/*.sh
 
 echo "Installed. Edit ~/.config/gloaming/gloaming.conf to set your schedule,"
-echo "brightness levels, and DDC/CI bus numbers (see 'ddcutil detect')."
+echo "brightness levels, and per-display calibration."
 echo "Then enable the timers/services you want, e.g.:"
 echo "  systemctl --user enable --now gloaming-brightness-schedule.timer"
 echo "  systemctl --user enable --now gloaming-fullscreen-brightness-watch.service"
