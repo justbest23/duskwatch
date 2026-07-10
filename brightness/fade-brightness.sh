@@ -7,8 +7,7 @@ source lib-config.sh
 
 TARGET=$1
 DURATION=${2:-600}
-STEPS=$(( DURATION < 30 ? DURATION : 30 ))
-(( STEPS < 1 )) && STEPS=1
+STEPS=30
 RETRIES=3
 
 ddc_getvcp() {
