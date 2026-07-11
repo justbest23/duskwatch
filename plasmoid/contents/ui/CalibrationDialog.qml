@@ -6,13 +6,13 @@ import org.kde.kirigami as Kirigami
 
 Kirigami.ApplicationWindow {
     id: dialog
-    title: i18n("Gloaming - Display Calibration")
+    title: i18n("Duskwatch - Display Calibration")
     width: Kirigami.Units.gridUnit * 26
     height: Kirigami.Units.gridUnit * 20
 
-    readonly property string listScript: "$HOME/Projects/gloaming/brightness/list-displays.sh"
-    readonly property string previewScript: "$HOME/Projects/gloaming/brightness/preview-raw.sh"
-    readonly property string configScript: "$HOME/Projects/gloaming/brightness/set-config.sh"
+    readonly property string listScript: "$HOME/Projects/duskwatch/brightness/list-displays.sh"
+    readonly property string previewScript: "$HOME/Projects/duskwatch/brightness/preview-raw.sh"
+    readonly property string configScript: "$HOME/Projects/duskwatch/brightness/set-config.sh"
 
     property var displays: []
 

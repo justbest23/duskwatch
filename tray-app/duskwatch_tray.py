@@ -41,8 +41,8 @@ LIST_DISPLAYS_SCRIPT = REPO_ROOT / "brightness" / "list-displays.sh"
 PREVIEW_RAW_SCRIPT = REPO_ROOT / "brightness" / "preview-raw.sh"
 
 XDG_CONFIG_HOME = Path(os.environ.get("XDG_CONFIG_HOME", str(Path.home() / ".config")))
-CONFIG_FILE = XDG_CONFIG_HOME / "gloaming" / "gloaming.conf"
-STATE_FILE = XDG_CONFIG_HOME / "gloaming" / "state"
+CONFIG_FILE = XDG_CONFIG_HOME / "duskwatch" / "duskwatch.conf"
+STATE_FILE = XDG_CONFIG_HOME / "duskwatch" / "state"
 
 TEMP_MIN, TEMP_MAX, TEMP_DEFAULT = 2300, 6500, 6300
 
@@ -132,11 +132,11 @@ def read_mode() -> str:
     return m.group(1).strip() if m else "schedule"
 
 
-class GloamingPopup(QWidget):
+class DuskwatchPopup(QWidget):
     def __init__(self) -> None:
         super().__init__()
         self.setWindowFlag(Qt.WindowType.Popup)
-        self.setWindowTitle("Gloaming")
+        self.setWindowTitle("Duskwatch")
         self._loading_schedule = False
 
         layout = QVBoxLayout(self)
@@ -326,12 +326,12 @@ class CalibrationDialog(QDialog):
     """Per-display Floor/Ceiling calibration, kept separate from the main
     popup since it's a one-time-per-monitor setup task, not a quick toggle.
     Dragging a slider previews live on that one display via preview-raw.sh;
-    releasing it commits FLOOR_/CEIL_<display> to gloaming.conf.
+    releasing it commits FLOOR_/CEIL_<display> to duskwatch.conf.
     """
 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
-        self.setWindowTitle("Gloaming - Display Calibration")
+        self.setWindowTitle("Duskwatch - Display Calibration")
         self.resize(480, 400)
 
         outer = QVBoxLayout(self)
@@ -415,9 +415,9 @@ def main() -> None:
     app.setQuitOnLastWindowClosed(False)
 
     tray = QSystemTrayIcon(QIcon.fromTheme("weather-clear-night"))
-    tray.setToolTip("Gloaming")
+    tray.setToolTip("Duskwatch")
 
-    popup = GloamingPopup()
+    popup = DuskwatchPopup()
 
     def toggle_popup() -> None:
         if popup.isVisible():
@@ -430,7 +430,7 @@ def main() -> None:
     # Left-click (ActivationReason.Trigger) is the normal way to open this,
     # but QSystemTrayIcon.activated doesn't reliably fire through KDE's
     # Wayland StatusNotifierItem backend - a known Qt/Wayland gap, not
-    # specific to this app. The "Open Gloaming" menu action is the
+    # specific to this app. The "Open Duskwatch" menu action is the
     # guaranteed-working fallback via right-click; left-click still wired up
     # in case it does fire on a given setup.
     def on_activated(reason: QSystemTrayIcon.ActivationReason) -> None:
@@ -440,7 +440,7 @@ def main() -> None:
     tray.activated.connect(on_activated)
 
     menu = QMenu()
-    menu.addAction("Open Gloaming").triggered.connect(toggle_popup)
+    menu.addAction("Open Duskwatch").triggered.connect(toggle_popup)
     menu.addSeparator()
     menu.addAction("Quit").triggered.connect(app.quit)
     tray.setContextMenu(menu)

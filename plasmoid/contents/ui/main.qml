@@ -13,11 +13,11 @@ PlasmoidItem {
 
     readonly property int tempMin: 2300
     readonly property int tempMax: 6500
-    readonly property string configPath: "$HOME/.config/gloaming/gloaming.conf"
-    readonly property string statePath: "$HOME/.config/gloaming/state"
-    readonly property string brightnessScript: "$HOME/Projects/gloaming/brightness/set-brightness-live.sh"
-    readonly property string modeScript: "$HOME/Projects/gloaming/brightness/set-mode.sh"
-    readonly property string configScript: "$HOME/Projects/gloaming/brightness/set-config.sh"
+    readonly property string configPath: "$HOME/.config/duskwatch/duskwatch.conf"
+    readonly property string statePath: "$HOME/.config/duskwatch/state"
+    readonly property string brightnessScript: "$HOME/Projects/duskwatch/brightness/set-brightness-live.sh"
+    readonly property string modeScript: "$HOME/Projects/duskwatch/brightness/set-mode.sh"
+    readonly property string configScript: "$HOME/Projects/duskwatch/brightness/set-config.sh"
 
     property int brightnessPct: 100
     property int temperatureK: 6300

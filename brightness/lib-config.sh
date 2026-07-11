@@ -11,16 +11,16 @@ FADE_STEP_MINUTES=5
 SNAP_DURATION=10
 ONTIME_WINDOW=300
 
-CONFIG_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/gloaming/gloaming.conf"
+CONFIG_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/duskwatch/duskwatch.conf"
 if [[ -f "$CONFIG_FILE" ]]; then
     # shellcheck disable=SC1090
     source <(grep -E '^[A-Z_][A-Za-z0-9_]*=' "$CONFIG_FILE")
 fi
 
-# Runtime override state (day/night/schedule), separate from gloaming.conf
+# Runtime override state (day/night/schedule), separate from duskwatch.conf
 # since it's set by the tray widgets rather than hand-edited - see
 # set-mode.sh. Defaults to "schedule" (pure time-of-day behavior) if unset.
-STATE_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/gloaming/state"
+STATE_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/duskwatch/state"
 get_mode() {
     local mode
     mode=$(grep '^MODE=' "$STATE_FILE" 2>/dev/null | tail -1)
@@ -65,7 +65,7 @@ sb_set() {
 # the same raw percentage, so a schedule target like 30% is mapped through
 # each display's own FLOOR_<display>/CEIL_<display> range (default 0/100)
 # rather than applied to the raw 0-100 scale directly. Set these in
-# gloaming.conf, e.g. FLOOR_display1=20 CEIL_display1=90, once you've found
+# duskwatch.conf, e.g. FLOOR_display1=20 CEIL_display1=90, once you've found
 # values that visually match across your monitors.
 sb_calibrated_pct() {
     local display=$1 pct=$2

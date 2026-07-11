@@ -10,8 +10,8 @@
         "Description": "Manual override for color temperature and brightness",
         "EnabledByDefault": true,
         "Icon": "weather-clear-night",
-        "Id": "org.gloaming.trayapplet",
-        "Name": "Gloaming"
+        "Id": "org.duskwatch.trayapplet",
+        "Name": "Duskwatch"
     },
     "X-Plasma-API": "declarativeappletscript",
     "X-Plasma-API-Minimum-Version": "6.0",

@@ -1,4 +1,4 @@
-# Gloaming shared config. Copy to ~/.config/gloaming/gloaming.conf and edit -
+# Duskwatch shared config. Copy to ~/.config/duskwatch/duskwatch.conf and edit -
 # that copy is what gets read; this file is just the shipped defaults/reference.
 # All values here can be changed live: the schedule checker re-reads this file
 # every time it runs (every few minutes), so edits apply within minutes rather

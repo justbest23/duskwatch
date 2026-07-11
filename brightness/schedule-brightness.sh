@@ -4,7 +4,7 @@
 # stops - this is what makes the tray widgets' mode switch actually stick
 # instead of getting overwritten by the next periodic timer tick. Otherwise
 # determines the brightness target from the current time of day (reading
-# gloaming.conf fresh each run, so schedule edits apply on the next periodic
+# duskwatch.conf fresh each run, so schedule edits apply on the next periodic
 # check without restarting anything) and fades to it. If we're firing near
 # the actual scheduled boundary we do a slow fade; if we're catching up long
 # after it - PC was off, late login, or the user just edited the schedule to

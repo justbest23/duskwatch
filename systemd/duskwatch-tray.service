@@ -1,10 +1,10 @@
 [Unit]
-Description=Gloaming standalone tray app
+Description=Duskwatch standalone tray app
 After=graphical-session.target
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/python3 %h/Projects/gloaming/tray-app/gloaming_tray.py
+ExecStart=/usr/bin/python3 %h/Projects/duskwatch/tray-app/duskwatch_tray.py
 Restart=on-failure
 
 [Install]

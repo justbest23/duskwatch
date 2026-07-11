@@ -1,0 +1,10 @@
+[Unit]
+Description=Duskwatch: restore full brightness while a fullscreen window is active
+
+[Service]
+Type=simple
+ExecStart=%h/Projects/duskwatch/brightness/fullscreen-brightness-watch.sh
+Restart=on-failure
+
+[Install]
+WantedBy=default.target

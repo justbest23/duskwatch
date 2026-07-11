@@ -6,7 +6,7 @@
 # a display is controlled via real DDC/CI or KWin's software brightness
 # fallback (e.g. a monitor whose DDC/CI is flaky or unsupported).
 #
-# FADE_STYLE (from gloaming.conf) picks the shape of the transition:
+# FADE_STYLE (from duskwatch.conf) picks the shape of the transition:
 #   smooth  (default) - 30 even micro-steps across DURATION, looks continuous
 #   stepped            - fewer, larger jumps spaced FADE_STEP_MINUTES apart,
 #                         however many of those intervals fit in DURATION
@@ -36,7 +36,7 @@ for display in $(sb_displays); do
         MAX[$display]=$max
         TARGET_RAW[$display]=$(( max * $(sb_calibrated_pct "$display" "$TARGET") / 100 ))
     else
-        echo "gloaming: $display not responding, skipping" >&2
+        echo "duskwatch: $display not responding, skipping" >&2
     fi
 done
 

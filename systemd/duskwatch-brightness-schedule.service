@@ -1,0 +1,6 @@
+[Unit]
+Description=Duskwatch: fade monitor brightness to the current schedule target
+
+[Service]
+Type=oneshot
+ExecStart=%h/Projects/duskwatch/brightness/schedule-brightness.sh

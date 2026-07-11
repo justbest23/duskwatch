@@ -1,6 +1,0 @@
-[Unit]
-Description=Gloaming: fade monitor brightness to the current schedule target
-
-[Service]
-Type=oneshot
-ExecStart=%h/Projects/gloaming/brightness/schedule-brightness.sh
