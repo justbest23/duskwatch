@@ -9,6 +9,14 @@ MORNING_HOUR=7
 DIMMED_PCT=30
 NORMAL_PCT=100
 
+# Color temperature at each end of the schedule, in Kelvin (lower = warmer).
+# This is Duskwatch's actual redshift/gammastep replacement - Wayland
+# clients can't set gamma tables directly, so this is the only thing that
+# shifts color temperature on a schedule here. Applied via fade-temperature.sh
+# together with brightness, same timing (FADE_DURATION/FADE_STYLE below).
+DIMMED_TEMP=4000
+NORMAL_TEMP=6500
+
 # Which org.kde.ScreenBrightness displays to control (space-separated, e.g.
 # "display0 display1"). Leave empty to auto-detect and use all of them - see
 # `gdbus call --session --dest org.kde.Solid.PowerManagement --object-path

@@ -1,9 +1,9 @@
 #!/bin/bash
 # set-mode.sh day|night|schedule
 # Sets the manual override mode used by schedule-brightness.sh and applies
-# it immediately. "day"/"night" pin brightness regardless of time of day
-# until switched back; "schedule" clears the override and resumes normal
-# time-of-day behavior.
+# it immediately. "day"/"night" pin brightness and color temperature
+# regardless of time of day until switched back; "schedule" clears the
+# override and resumes normal time-of-day behavior.
 set -euo pipefail
 cd "$(dirname "$0")"
 source lib-config.sh
@@ -18,7 +18,15 @@ mkdir -p "$(dirname "$STATE_FILE")"
 echo "MODE=$MODE" > "$STATE_FILE"
 
 case "$MODE" in
-    day)      ./fade-brightness.sh "$NORMAL_PCT" "$SNAP_DURATION" ;;
-    night)    ./fade-brightness.sh "$DIMMED_PCT" "$SNAP_DURATION" ;;
+    day)
+        ./fade-temperature.sh "$NORMAL_TEMP" "$SNAP_DURATION" &
+        ./fade-brightness.sh "$NORMAL_PCT" "$SNAP_DURATION"
+        wait
+        ;;
+    night)
+        ./fade-temperature.sh "$DIMMED_TEMP" "$SNAP_DURATION" &
+        ./fade-brightness.sh "$DIMMED_PCT" "$SNAP_DURATION"
+        wait
+        ;;
     schedule) ./schedule-brightness.sh ;;
 esac

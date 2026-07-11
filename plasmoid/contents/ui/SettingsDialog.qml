@@ -24,6 +24,8 @@ Kirigami.ApplicationWindow {
     property int morningHour: 7
     property int dimmedPct: 30
     property int normalPct: 100
+    property int dimmedTemp: 4000
+    property int normalTemp: 6500
     // Guards against onValueModified firing while we're setting values from
     // a config reload rather than from the user actually touching a field.
     property bool loadingSchedule: false
@@ -93,6 +95,8 @@ Kirigami.ApplicationWindow {
         morningHour = parseInt(find("MORNING_HOUR", morningHour)) || morningHour
         dimmedPct = parseInt(find("DIMMED_PCT", dimmedPct))
         normalPct = parseInt(find("NORMAL_PCT", normalPct))
+        dimmedTemp = parseInt(find("DIMMED_TEMP", dimmedTemp))
+        normalTemp = parseInt(find("NORMAL_TEMP", normalTemp))
         fadeDurationSeconds = parseInt(find("FADE_DURATION", fadeDurationSeconds))
         fadeStyle = find("FADE_STYLE", fadeStyle)
         fadeStepMinutes = parseInt(find("FADE_STEP_MINUTES", fadeStepMinutes)) || fadeStepMinutes
@@ -229,22 +233,13 @@ Kirigami.ApplicationWindow {
                 font.bold: true
                 Layout.topMargin: Kirigami.Units.smallSpacing
             }
-            GridLayout {
-                Layout.fillWidth: true
-                columns: 4
-                columnSpacing: Kirigami.Units.smallSpacing
-                rowSpacing: Kirigami.Units.smallSpacing
 
-                PlasmaComponents3.Label { text: i18n("Dim to") }
-                PlasmaComponents3.SpinBox {
-                    from: 0; to: 100
-                    value: dialog.dimmedPct
-                    onValueModified: {
-                        dialog.dimmedPct = value
-                        if (!dialog.loadingSchedule) dialog.setConfigValue("DIMMED_PCT", value)
-                    }
+            RowLayout {
+                Layout.fillWidth: true
+                PlasmaComponents3.Label {
+                    text: i18n("Evening, starting at")
+                    Layout.fillWidth: true
                 }
-                PlasmaComponents3.Label { text: i18n("% at") }
                 PlasmaComponents3.SpinBox {
                     from: 0; to: 23
                     value: dialog.eveningHour
@@ -253,17 +248,52 @@ Kirigami.ApplicationWindow {
                         if (!dialog.loadingSchedule) dialog.setConfigValue("EVENING_HOUR", value)
                     }
                 }
-
-                PlasmaComponents3.Label { text: i18n("Back to") }
-                PlasmaComponents3.SpinBox {
+                PlasmaComponents3.Label { text: i18n(":00") }
+            }
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: Kirigami.Units.smallSpacing
+                PlasmaComponents3.Label { text: i18n("Brightness") }
+                PlasmaComponents3.Slider {
+                    Layout.fillWidth: true
                     from: 0; to: 100
-                    value: dialog.normalPct
-                    onValueModified: {
-                        dialog.normalPct = value
-                        if (!dialog.loadingSchedule) dialog.setConfigValue("NORMAL_PCT", value)
+                    value: dialog.dimmedPct
+                    onMoved: {
+                        dialog.dimmedPct = Math.round(value)
+                        dialog.setConfigValue("DIMMED_PCT", Math.round(value))
                     }
                 }
-                PlasmaComponents3.Label { text: i18n("% at") }
+                PlasmaComponents3.Label {
+                    text: dialog.dimmedPct + "%"
+                    Layout.minimumWidth: Kirigami.Units.gridUnit * 2
+                }
+            }
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: Kirigami.Units.smallSpacing
+                PlasmaComponents3.Label { text: i18n("Color temp") }
+                PlasmaComponents3.Slider {
+                    Layout.fillWidth: true
+                    from: dialog.tempMin; to: dialog.tempMax
+                    value: dialog.dimmedTemp
+                    onMoved: {
+                        dialog.dimmedTemp = Math.round(value)
+                        dialog.setConfigValue("DIMMED_TEMP", Math.round(value))
+                    }
+                }
+                PlasmaComponents3.Label {
+                    text: dialog.dimmedTemp + "K"
+                    Layout.minimumWidth: Kirigami.Units.gridUnit * 3
+                }
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+                Layout.topMargin: Kirigami.Units.smallSpacing
+                PlasmaComponents3.Label {
+                    text: i18n("Morning, starting at")
+                    Layout.fillWidth: true
+                }
                 PlasmaComponents3.SpinBox {
                     from: 0; to: 23
                     value: dialog.morningHour
@@ -271,6 +301,43 @@ Kirigami.ApplicationWindow {
                         dialog.morningHour = value
                         if (!dialog.loadingSchedule) dialog.setConfigValue("MORNING_HOUR", value)
                     }
+                }
+                PlasmaComponents3.Label { text: i18n(":00") }
+            }
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: Kirigami.Units.smallSpacing
+                PlasmaComponents3.Label { text: i18n("Brightness") }
+                PlasmaComponents3.Slider {
+                    Layout.fillWidth: true
+                    from: 0; to: 100
+                    value: dialog.normalPct
+                    onMoved: {
+                        dialog.normalPct = Math.round(value)
+                        dialog.setConfigValue("NORMAL_PCT", Math.round(value))
+                    }
+                }
+                PlasmaComponents3.Label {
+                    text: dialog.normalPct + "%"
+                    Layout.minimumWidth: Kirigami.Units.gridUnit * 2
+                }
+            }
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: Kirigami.Units.smallSpacing
+                PlasmaComponents3.Label { text: i18n("Color temp") }
+                PlasmaComponents3.Slider {
+                    Layout.fillWidth: true
+                    from: dialog.tempMin; to: dialog.tempMax
+                    value: dialog.normalTemp
+                    onMoved: {
+                        dialog.normalTemp = Math.round(value)
+                        dialog.setConfigValue("NORMAL_TEMP", Math.round(value))
+                    }
+                }
+                PlasmaComponents3.Label {
+                    text: dialog.normalTemp + "K"
+                    Layout.minimumWidth: Kirigami.Units.gridUnit * 3
                 }
             }
 

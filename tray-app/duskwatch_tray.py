@@ -20,7 +20,6 @@ from PyQt6.QtWidgets import (
     QComboBox,
     QDialog,
     QDoubleSpinBox,
-    QGridLayout,
     QHBoxLayout,
     QLabel,
     QMenu,
@@ -230,29 +229,42 @@ class SettingsDialog(QDialog):
         layout.addWidget(_separator())
 
         layout.addWidget(_bold(QLabel("Schedule")))
-        grid = QGridLayout()
-        self.dimmed_spin = QSpinBox()
-        self.dimmed_spin.setRange(0, 100)
-        self.dimmed_spin.valueChanged.connect(lambda v: self._on_schedule_changed("DIMMED_PCT", v))
+
+        evening_row = QHBoxLayout()
+        evening_row.addWidget(QLabel("Evening, starting at"), 1)
         self.evening_spin = QSpinBox()
         self.evening_spin.setRange(0, 23)
         self.evening_spin.valueChanged.connect(lambda v: self._on_schedule_changed("EVENING_HOUR", v))
-        self.normal_spin = QSpinBox()
-        self.normal_spin.setRange(0, 100)
-        self.normal_spin.valueChanged.connect(lambda v: self._on_schedule_changed("NORMAL_PCT", v))
+        evening_row.addWidget(self.evening_spin)
+        evening_row.addWidget(QLabel(":00"))
+        layout.addLayout(evening_row)
+
+        self.dimmed_slider, dimmed_row = _slider_row(
+            "Brightness", 0, 100, "%", lambda v: self._on_schedule_changed("DIMMED_PCT", v)
+        )
+        layout.addLayout(dimmed_row)
+        self.dimmed_temp_slider, dimmed_temp_row = _slider_row(
+            "Color temp", TEMP_MIN, TEMP_MAX, "K", lambda v: self._on_schedule_changed("DIMMED_TEMP", v)
+        )
+        layout.addLayout(dimmed_temp_row)
+
+        morning_row = QHBoxLayout()
+        morning_row.addWidget(QLabel("Morning, starting at"), 1)
         self.morning_spin = QSpinBox()
         self.morning_spin.setRange(0, 23)
         self.morning_spin.valueChanged.connect(lambda v: self._on_schedule_changed("MORNING_HOUR", v))
+        morning_row.addWidget(self.morning_spin)
+        morning_row.addWidget(QLabel(":00"))
+        layout.addLayout(morning_row)
 
-        grid.addWidget(QLabel("Dim to"), 0, 0)
-        grid.addWidget(self.dimmed_spin, 0, 1)
-        grid.addWidget(QLabel("% at"), 0, 2)
-        grid.addWidget(self.evening_spin, 0, 3)
-        grid.addWidget(QLabel("Back to"), 1, 0)
-        grid.addWidget(self.normal_spin, 1, 1)
-        grid.addWidget(QLabel("% at"), 1, 2)
-        grid.addWidget(self.morning_spin, 1, 3)
-        layout.addLayout(grid)
+        self.normal_slider, normal_row = _slider_row(
+            "Brightness", 0, 100, "%", lambda v: self._on_schedule_changed("NORMAL_PCT", v)
+        )
+        layout.addLayout(normal_row)
+        self.normal_temp_slider, normal_temp_row = _slider_row(
+            "Color temp", TEMP_MIN, TEMP_MAX, "K", lambda v: self._on_schedule_changed("NORMAL_TEMP", v)
+        )
+        layout.addLayout(normal_temp_row)
 
         layout.addWidget(_bold(QLabel("Fade")))
         self.fade_combo = QComboBox()
@@ -335,13 +347,17 @@ class SettingsDialog(QDialog):
         config = read_config()
         self._loading_schedule = True
         if "DIMMED_PCT" in config:
-            self.dimmed_spin.setValue(int(config["DIMMED_PCT"]))
+            self.dimmed_slider.setValue(int(config["DIMMED_PCT"]))
         if "EVENING_HOUR" in config:
             self.evening_spin.setValue(int(config["EVENING_HOUR"]))
         if "NORMAL_PCT" in config:
-            self.normal_spin.setValue(int(config["NORMAL_PCT"]))
+            self.normal_slider.setValue(int(config["NORMAL_PCT"]))
         if "MORNING_HOUR" in config:
             self.morning_spin.setValue(int(config["MORNING_HOUR"]))
+        if "DIMMED_TEMP" in config:
+            self.dimmed_temp_slider.setValue(int(config["DIMMED_TEMP"]))
+        if "NORMAL_TEMP" in config:
+            self.normal_temp_slider.setValue(int(config["NORMAL_TEMP"]))
         self._loading_schedule = False
         self._sync_fade_selection(
             int(config.get("FADE_DURATION", 1200)),
@@ -439,6 +455,26 @@ def _separator() -> QWidget:
     line.setFrameShape(QFrame.Shape.HLine)
     line.setFrameShadow(QFrame.Shadow.Sunken)
     return line
+
+
+def _slider_row(label_text, minimum, maximum, suffix, on_change):
+    """A labeled QSlider + live value label, used for the schedule's
+    brightness/color-temp targets - same live-value-label pattern as the
+    calibration dialog's Floor/Ceiling rows."""
+    row = QHBoxLayout()
+    row.addWidget(QLabel(label_text))
+    slider = QSlider(Qt.Orientation.Horizontal)
+    slider.setRange(minimum, maximum)
+    value_label = QLabel(f"{minimum}{suffix}")
+
+    def _changed(v: int) -> None:
+        value_label.setText(f"{v}{suffix}")
+        on_change(v)
+
+    slider.valueChanged.connect(_changed)
+    row.addWidget(slider)
+    row.addWidget(value_label)
+    return slider, row
 
 
 def open_settings_dialog(dialog: SettingsDialog) -> None:
