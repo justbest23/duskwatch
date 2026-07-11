@@ -12,7 +12,7 @@ ONTIME_WINDOW=300
 CONFIG_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/gloaming/gloaming.conf"
 if [[ -f "$CONFIG_FILE" ]]; then
     # shellcheck disable=SC1090
-    source <(grep -E '^[A-Z_]+=' "$CONFIG_FILE")
+    source <(grep -E '^[A-Z_][A-Za-z0-9_]*=' "$CONFIG_FILE")
 fi
 
 SB_DEST=org.kde.Solid.PowerManagement

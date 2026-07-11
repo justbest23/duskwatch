@@ -3,6 +3,7 @@ import QtQuick.Layouts
 import QtQuick.Controls as QQC2
 import org.kde.plasma.plasmoid
 import org.kde.plasma.plasma5support as P5Support
+import org.kde.plasma.core as PlasmaCore
 import org.kde.kirigami as Kirigami
 
 PlasmoidItem {
@@ -14,6 +15,10 @@ PlasmoidItem {
     property int temperatureK: 6300
 
     Plasmoid.icon: "weather-clear-night"
+    // Without an explicit status, the system tray defaults custom applets to
+    // Passive and hides them behind the overflow chevron - Active keeps this
+    // pinned as a normal visible tray icon like Volume/Battery/Network.
+    Plasmoid.status: PlasmaCore.Types.ActiveStatus
 
     P5Support.DataSource {
         id: executable

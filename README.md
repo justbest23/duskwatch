@@ -34,15 +34,17 @@ User-level systemd units wiring the above into your session:
 
 A native Plasma 6 tray applet for manual override: a brightness slider (instant, via `set-brightness-live.sh`) and a color-temperature slider that live-previews via `NightLight.preview()`/`stopPreview()` the same way KDE's own Night Color KCM slider does — dragging it changes color temperature immediately, and closing the widget reverts to whatever the schedule says. Brightness changes made this way persist (they're just the current brightness) rather than reverting.
 
+Note: this does **not** dock inside the System Tray's grouped icons. KDE's system tray only auto-shows its own hardcoded set of "known" items (volume, battery, network, etc.) — a third-party `Plasma/Applet` package gets silently dropped from that list even with `X-Plasma-NotificationArea: true` set and `Plasmoid.status` forced to `ActiveStatus`. Add it via "Add Widgets" and place it directly on a panel instead. If you want an icon that actually lives in the grouped tray area, use `tray-app/`.
+
 ### `tray-app/`
 
-A standalone Python (PyQt6) tray app offering the same two controls (brightness slider, live-preview temperature slider) outside of Plasma's widget system — same interaction model as the Plasmoid, kept in sync with it. Pick one or the other; running both gives you two overlapping tray icons.
+A standalone Python (PyQt6) tray app offering the same two controls (brightness slider, live-preview temperature slider) outside of Plasma's widget system — same interaction model as the Plasmoid, kept in sync with it. Because it registers as a real `StatusNotifierItem` (the same protocol Discord, Bluetooth, etc. use), it docks correctly inside the System Tray's grouped icons — this is the recommended option if that's the look you want. Pick one or the other; running both gives you two icons.
 
 ## Requirements
 
 - KDE Plasma 6 (6.3+, for `org.kde.ScreenBrightness`), Wayland session
 - `kwriteconfig6`, `kpackagetool6`, `gdbus` (part of a standard Plasma 6 install)
-- PyQt6 (`python-pyqt6` on Arch), only if you want the standalone tray app instead of the Plasmoid
+- PyQt6 (`python-pyqt6` on Arch) for the standalone tray app — recommended, see the System Tray note above
 
 ## Install
 
@@ -58,3 +60,5 @@ Edit `~/.config/gloaming/gloaming.conf` for your schedule, brightness levels, an
 
 - KWin's Night Color inhibitor is cookie-based and, in testing, only the original calling connection could reliably release its own inhibit — if a script/process holding an inhibit dies uncleanly, Night Color can get stuck inhibited until you log out and back in.
 - The `SetBrightness` OSD-suppression flag (`flags=1`) was found empirically, not from documentation — it could change in a future Plasma release.
+- The Plasmoid does not dock inside the System Tray's grouped icons — see the note in the `plasmoid/` section above. Use `tray-app/` if you want that.
+- Real DDC/CI monitors can visibly ease into a new brightness over ~1-2s due to the monitor's own firmware, even though `SetBrightness` returns and the D-Bus `Brightness` property updates instantly (confirmed by polling it immediately after a call — no server-side ramping happens on Gloaming's or KDE's end). Displays using KWin's software-brightness fallback apply changes instantly since there's no hardware round-trip. Nothing to fix here; it's how those monitors respond to a DDC brightness write.

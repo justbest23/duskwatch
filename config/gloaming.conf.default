@@ -31,8 +31,14 @@ ONTIME_WINDOW=300
 # display's own FLOOR_<display>/CEIL_<display> range (default 0/100) before
 # being applied, so you can make displays visually match instead of all
 # sharing the same raw 0-100 scale. Uncomment and adjust to taste - see
-# DISPLAYS above for how to list your display names.
+# DISPLAYS above for how to list your display names and Label to figure out
+# which display<N> is which physical monitor.
+#
+# To tune: drag the brightness slider in the tray widget while watching each
+# monitor, and adjust FLOOR/CEIL until they visually match at both ends.
 # FLOOR_display0=0
 # CEIL_display0=100
 # FLOOR_display1=20
 # CEIL_display1=90
+# FLOOR_display2=0
+# CEIL_display2=100
