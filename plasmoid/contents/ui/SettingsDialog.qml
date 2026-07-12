@@ -21,7 +21,9 @@ Kirigami.ApplicationWindow {
     property int temperatureK: 6300
 
     property int eveningHour: 19
+    property int eveningMinute: 0
     property int morningHour: 7
+    property int morningMinute: 0
     property int dimmedPct: 30
     property int normalPct: 100
     property int dimmedTemp: 4000
@@ -92,7 +94,9 @@ Kirigami.ApplicationWindow {
         }
         loadingSchedule = true
         eveningHour = parseInt(find("EVENING_HOUR", eveningHour)) || eveningHour
+        eveningMinute = parseInt(find("EVENING_MINUTE", eveningMinute)) || 0
         morningHour = parseInt(find("MORNING_HOUR", morningHour)) || morningHour
+        morningMinute = parseInt(find("MORNING_MINUTE", morningMinute)) || 0
         dimmedPct = parseInt(find("DIMMED_PCT", dimmedPct))
         normalPct = parseInt(find("NORMAL_PCT", normalPct))
         dimmedTemp = parseInt(find("DIMMED_TEMP", dimmedTemp))
@@ -248,7 +252,17 @@ Kirigami.ApplicationWindow {
                         if (!dialog.loadingSchedule) dialog.setConfigValue("EVENING_HOUR", value)
                     }
                 }
-                PlasmaComponents3.Label { text: i18n(":00") }
+                PlasmaComponents3.Label { text: i18n(":") }
+                PlasmaComponents3.SpinBox {
+                    from: 0; to: 59
+                    value: dialog.eveningMinute
+                    textFromValue: function(value) { return (value < 10 ? "0" : "") + value }
+                    valueFromText: function(text) { return parseInt(text) || 0 }
+                    onValueModified: {
+                        dialog.eveningMinute = value
+                        if (!dialog.loadingSchedule) dialog.setConfigValue("EVENING_MINUTE", value)
+                    }
+                }
             }
             RowLayout {
                 Layout.fillWidth: true
@@ -302,7 +316,17 @@ Kirigami.ApplicationWindow {
                         if (!dialog.loadingSchedule) dialog.setConfigValue("MORNING_HOUR", value)
                     }
                 }
-                PlasmaComponents3.Label { text: i18n(":00") }
+                PlasmaComponents3.Label { text: i18n(":") }
+                PlasmaComponents3.SpinBox {
+                    from: 0; to: 59
+                    value: dialog.morningMinute
+                    textFromValue: function(value) { return (value < 10 ? "0" : "") + value }
+                    valueFromText: function(text) { return parseInt(text) || 0 }
+                    onValueModified: {
+                        dialog.morningMinute = value
+                        if (!dialog.loadingSchedule) dialog.setConfigValue("MORNING_MINUTE", value)
+                    }
+                }
             }
             RowLayout {
                 Layout.fillWidth: true

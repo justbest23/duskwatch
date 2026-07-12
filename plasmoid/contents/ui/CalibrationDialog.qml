@@ -13,6 +13,7 @@ Kirigami.ApplicationWindow {
     readonly property string listScript: "$HOME/Projects/duskwatch/brightness/list-displays.sh"
     readonly property string previewScript: "$HOME/Projects/duskwatch/brightness/preview-raw.sh"
     readonly property string configScript: "$HOME/Projects/duskwatch/brightness/set-config.sh"
+    readonly property string swdimScript: "$HOME/Projects/duskwatch/brightness/set-software-dimming.sh"
 
     property var displays: []
 
@@ -40,8 +41,17 @@ Kirigami.ApplicationWindow {
         text.split("\n").forEach(line => {
             if (!line.trim()) return
             var parts = line.split("|")
-            if (parts.length !== 4) return
-            rows.push({ id: parts[0], label: parts[1], floor: parseInt(parts[2]), ceil: parseInt(parts[3]) })
+            if (parts.length !== 7) return
+            rows.push({
+                id: parts[0], label: parts[1],
+                floor: parseInt(parts[2]), ceil: parseInt(parts[3]),
+                // Calibration is written under the stable label-derived key
+                // so it stays with the physical monitor even if the displayN
+                // list reindexes.
+                calKey: parts[4] || parts[0],
+                connector: parts[5], swdim: parts[6],
+                controllable: parts[0] !== "-"
+            })
         })
         displays = rows
     }
@@ -50,12 +60,17 @@ Kirigami.ApplicationWindow {
         executable.exec(previewScript + " " + displayId + " " + pct)
     }
 
-    function setFloor(displayId, value) {
-        executable.exec(configScript + " FLOOR_" + displayId + " " + value)
+    function setFloor(display, value) {
+        executable.exec(configScript + " FLOOR_" + display.calKey + " " + value)
     }
 
-    function setCeil(displayId, value) {
-        executable.exec(configScript + " CEIL_" + displayId + " " + value)
+    function setCeil(display, value) {
+        executable.exec(configScript + " CEIL_" + display.calKey + " " + value)
+    }
+
+    function setSoftwareDimming(display, enabled) {
+        var target = display.controllable ? display.id : display.connector
+        executable.exec(swdimScript + " " + target + " " + (enabled ? "on" : "off"))
     }
 
     Component.onCompleted: reload()
@@ -85,7 +100,15 @@ Kirigami.ApplicationWindow {
                         text: modelData.label
                         font.bold: true
                     }
+                    PlasmaComponents3.Label {
+                        visible: !modelData.controllable
+                        text: i18n("No brightness control - this display's DDC/CI isn't working. Software dimming makes it controllable (and lets it go darker than hardware would, though it saves no power).")
+                        wrapMode: Text.WordWrap
+                        Layout.fillWidth: true
+                        opacity: 0.7
+                    }
                     RowLayout {
+                        visible: modelData.controllable
                         Layout.fillWidth: true
                         spacing: Kirigami.Units.smallSpacing
 
@@ -95,7 +118,7 @@ Kirigami.ApplicationWindow {
                             from: 0; to: 100
                             value: modelData.floor
                             onMoved: dialog.preview(modelData.id, Math.round(value))
-                            onPressedChanged: if (!pressed) dialog.setFloor(modelData.id, Math.round(value))
+                            onPressedChanged: if (!pressed) dialog.setFloor(modelData, Math.round(value))
                         }
                         PlasmaComponents3.Label {
                             text: modelData.floor + "%"
@@ -103,6 +126,7 @@ Kirigami.ApplicationWindow {
                         }
                     }
                     RowLayout {
+                        visible: modelData.controllable
                         Layout.fillWidth: true
                         spacing: Kirigami.Units.smallSpacing
 
@@ -112,11 +136,21 @@ Kirigami.ApplicationWindow {
                             from: 0; to: 100
                             value: modelData.ceil
                             onMoved: dialog.preview(modelData.id, Math.round(value))
-                            onPressedChanged: if (!pressed) dialog.setCeil(modelData.id, Math.round(value))
+                            onPressedChanged: if (!pressed) dialog.setCeil(modelData, Math.round(value))
                         }
                         PlasmaComponents3.Label {
                             text: modelData.ceil + "%"
                             Layout.minimumWidth: Kirigami.Units.gridUnit * 2
+                        }
+                    }
+                    PlasmaComponents3.CheckBox {
+                        visible: modelData.swdim !== "na" && modelData.connector !== ""
+                        checked: modelData.swdim === "on"
+                        text: i18n("Software dimming (disable DDC/CI hardware control)")
+                        onToggled: dialog.setSoftwareDimming(modelData, checked)
+
+                        PlasmaComponents3.ToolTip {
+                            text: i18n("Dims by scaling colors in the compositor instead of the monitor's backlight: works when DDC/CI doesn't, and can go darker than the hardware range, but saves no power. Takes a moment to apply; reopen this window to see the new state.")
                         }
                     }
                     Kirigami.Separator {

@@ -38,8 +38,8 @@ fi
 
 now=$(date +%s)
 today=$(date +%Y-%m-%d)
-evening_epoch=$(date -d "$today $EVENING_HOUR:00" +%s)
-morning_epoch=$(date -d "$today $MORNING_HOUR:00" +%s)
+evening_epoch=$(date -d "$today $(printf '%02d:%02d' "$EVENING_HOUR" "$EVENING_MINUTE")" +%s)
+morning_epoch=$(date -d "$today $(printf '%02d:%02d' "$MORNING_HOUR" "$MORNING_MINUTE")" +%s)
 
 # Boundaries in chronological order, assuming MORNING_HOUR < EVENING_HOUR:
 # yesterday's evening -> today's morning -> today's evening -> tomorrow's morning.

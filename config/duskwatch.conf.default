@@ -5,7 +5,9 @@
 # than needing a service restart.
 
 EVENING_HOUR=19
+EVENING_MINUTE=0
 MORNING_HOUR=7
+MORNING_MINUTE=0
 DIMMED_PCT=30
 NORMAL_PCT=100
 
@@ -44,17 +46,23 @@ ONTIME_WINDOW=300
 
 # Per-display calibration: monitors vary a lot in perceived brightness at the
 # same raw percentage. A schedule target of e.g. 30% is mapped through each
-# display's own FLOOR_<display>/CEIL_<display> range (default 0/100) before
-# being applied, so you can make displays visually match instead of all
-# sharing the same raw 0-100 scale. Uncomment and adjust to taste - see
-# DISPLAYS above for how to list your display names and Label to figure out
-# which display<N> is which physical monitor.
+# display's own floor/ceiling range (default 0/100) before being applied, so
+# you can make displays visually match instead of all sharing the same raw
+# 0-100 scale.
+#
+# Keys are FLOOR_<key>/CEIL_<key> where <key> is the display's label with
+# every non-alphanumeric run replaced by "_" (run
+# brightness/list-displays.sh to see each display's key). The label-derived
+# key sticks to the physical monitor; the older positional
+# FLOOR_displayN/CEIL_displayN form still works as a fallback, but silently
+# shifts to a different monitor if the display list reindexes (e.g. one
+# drops off), so prefer the label form.
 #
 # To tune: drag the brightness slider in the tray widget while watching each
-# monitor, and adjust FLOOR/CEIL until they visually match at both ends.
-# FLOOR_display0=0
-# CEIL_display0=100
-# FLOOR_display1=20
-# CEIL_display1=90
-# FLOOR_display2=0
-# CEIL_display2=100
+# monitor, and adjust FLOOR/CEIL until they visually match at both ends -
+# or just use the tray widget's "Calibrate displays..." window, which writes
+# these for you.
+# FLOOR_Microstep_MAG274QRF_QD=0
+# CEIL_Microstep_MAG274QRF_QD=100
+# FLOOR_Samsung_Electric_Company_S24C750=20
+# CEIL_Samsung_Electric_Company_S24C750=90

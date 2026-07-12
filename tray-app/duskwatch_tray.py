@@ -17,6 +17,7 @@ from PyQt6.QtGui import QCursor, QIcon
 from PyQt6.QtWidgets import (
     QApplication,
     QButtonGroup,
+    QCheckBox,
     QComboBox,
     QDialog,
     QDoubleSpinBox,
@@ -38,6 +39,7 @@ MODE_SCRIPT = REPO_ROOT / "brightness" / "set-mode.sh"
 CONFIG_SCRIPT = REPO_ROOT / "brightness" / "set-config.sh"
 LIST_DISPLAYS_SCRIPT = REPO_ROOT / "brightness" / "list-displays.sh"
 PREVIEW_RAW_SCRIPT = REPO_ROOT / "brightness" / "preview-raw.sh"
+SOFTWARE_DIMMING_SCRIPT = REPO_ROOT / "brightness" / "set-software-dimming.sh"
 
 XDG_CONFIG_HOME = Path(os.environ.get("XDG_CONFIG_HOME", str(Path.home() / ".config")))
 CONFIG_FILE = XDG_CONFIG_HOME / "duskwatch" / "duskwatch.conf"
@@ -97,21 +99,28 @@ def preview_raw(display_id: str, pct: int) -> None:
     subprocess.Popen([str(PREVIEW_RAW_SCRIPT), display_id, str(pct)])
 
 
-def list_displays() -> list[tuple[str, str, int, int]]:
+def list_displays() -> list[tuple[str, str, int, int, str, str, str]]:
+    """Rows of (id, label, floor, ceil, calkey, connector, swdim) - see
+    list-displays.sh for field semantics. id is "-" for outputs with no
+    brightness control; swdim is "on"/"off"/"na"."""
     try:
         out = subprocess.run(
-            [str(LIST_DISPLAYS_SCRIPT)], capture_output=True, text=True, timeout=5
+            [str(LIST_DISPLAYS_SCRIPT)], capture_output=True, text=True, timeout=10
         ).stdout
     except (OSError, subprocess.TimeoutExpired):
         return []
     displays = []
     for line in out.splitlines():
         parts = line.split("|")
-        if len(parts) != 4:
+        if len(parts) != 7:
             continue
-        display_id, label, floor, ceil = parts
-        displays.append((display_id, label, int(floor), int(ceil)))
+        display_id, label, floor, ceil, calkey, connector, swdim = parts
+        displays.append((display_id, label, int(floor), int(ceil), calkey, connector, swdim))
     return displays
+
+
+def set_software_dimming(target: str, enabled: bool) -> None:
+    subprocess.Popen([str(SOFTWARE_DIMMING_SCRIPT), target, "on" if enabled else "off"])
 
 
 def read_config() -> dict[str, str]:
@@ -236,7 +245,12 @@ class SettingsDialog(QDialog):
         self.evening_spin.setRange(0, 23)
         self.evening_spin.valueChanged.connect(lambda v: self._on_schedule_changed("EVENING_HOUR", v))
         evening_row.addWidget(self.evening_spin)
-        evening_row.addWidget(QLabel(":00"))
+        evening_row.addWidget(QLabel(":"))
+        self.evening_min_spin = _MinuteSpinBox()
+        self.evening_min_spin.valueChanged.connect(
+            lambda v: self._on_schedule_changed("EVENING_MINUTE", v)
+        )
+        evening_row.addWidget(self.evening_min_spin)
         layout.addLayout(evening_row)
 
         self.dimmed_slider, dimmed_row = _slider_row(
@@ -254,7 +268,12 @@ class SettingsDialog(QDialog):
         self.morning_spin.setRange(0, 23)
         self.morning_spin.valueChanged.connect(lambda v: self._on_schedule_changed("MORNING_HOUR", v))
         morning_row.addWidget(self.morning_spin)
-        morning_row.addWidget(QLabel(":00"))
+        morning_row.addWidget(QLabel(":"))
+        self.morning_min_spin = _MinuteSpinBox()
+        self.morning_min_spin.valueChanged.connect(
+            lambda v: self._on_schedule_changed("MORNING_MINUTE", v)
+        )
+        morning_row.addWidget(self.morning_min_spin)
         layout.addLayout(morning_row)
 
         self.normal_slider, normal_row = _slider_row(
@@ -350,10 +369,12 @@ class SettingsDialog(QDialog):
             self.dimmed_slider.setValue(int(config["DIMMED_PCT"]))
         if "EVENING_HOUR" in config:
             self.evening_spin.setValue(int(config["EVENING_HOUR"]))
+        self.evening_min_spin.setValue(int(config.get("EVENING_MINUTE", 0)))
         if "NORMAL_PCT" in config:
             self.normal_slider.setValue(int(config["NORMAL_PCT"]))
         if "MORNING_HOUR" in config:
             self.morning_spin.setValue(int(config["MORNING_HOUR"]))
+        self.morning_min_spin.setValue(int(config.get("MORNING_MINUTE", 0)))
         if "DIMMED_TEMP" in config:
             self.dimmed_temp_slider.setValue(int(config["DIMMED_TEMP"]))
         if "NORMAL_TEMP" in config:
@@ -405,41 +426,89 @@ class CalibrationDialog(QDialog):
             if item.widget():
                 item.widget().deleteLater()
 
-        for display_id, label, floor, ceil in list_displays():
-            self._rows_layout.addWidget(self._make_row(display_id, label, floor, ceil))
+        for display_id, label, floor, ceil, calkey, connector, swdim in list_displays():
+            self._rows_layout.addWidget(
+                self._make_row(display_id, label, floor, ceil, calkey, connector, swdim)
+            )
         self._rows_layout.addStretch()
 
-    def _make_row(self, display_id: str, label: str, floor: int, ceil: int) -> QWidget:
+    def _make_row(
+        self,
+        display_id: str,
+        label: str,
+        floor: int,
+        ceil: int,
+        calkey: str,
+        connector: str,
+        swdim: str,
+    ) -> QWidget:
         row = QWidget()
         layout = QVBoxLayout(row)
         layout.addWidget(_bold(QLabel(label)))
+        # Calibration is written under the stable label-derived key so it
+        # stays with the physical monitor even if the displayN list reindexes.
+        cal_key = calkey or display_id
 
-        floor_row = QHBoxLayout()
-        floor_row.addWidget(QLabel("Floor"))
-        floor_slider = QSlider(Qt.Orientation.Horizontal)
-        floor_slider.setRange(0, 100)
-        floor_slider.setValue(floor)
-        floor_label = QLabel(f"{floor}%")
-        floor_slider.valueChanged.connect(lambda v: (preview_raw(display_id, v), floor_label.setText(f"{v}%")))
-        floor_slider.sliderReleased.connect(lambda: set_config_value(f"FLOOR_{display_id}", floor_slider.value()))
-        floor_row.addWidget(floor_slider)
-        floor_row.addWidget(floor_label)
-        layout.addLayout(floor_row)
+        if display_id == "-":
+            note = QLabel(
+                "No brightness control - this display's DDC/CI isn't working. "
+                "Software dimming makes it controllable (and lets it go darker "
+                "than hardware would, though it saves no power)."
+            )
+            note.setWordWrap(True)
+            layout.addWidget(note)
+        else:
+            floor_row = QHBoxLayout()
+            floor_row.addWidget(QLabel("Floor"))
+            floor_slider = QSlider(Qt.Orientation.Horizontal)
+            floor_slider.setRange(0, 100)
+            floor_slider.setValue(floor)
+            floor_label = QLabel(f"{floor}%")
+            floor_slider.valueChanged.connect(lambda v: (preview_raw(display_id, v), floor_label.setText(f"{v}%")))
+            floor_slider.sliderReleased.connect(lambda: set_config_value(f"FLOOR_{cal_key}", floor_slider.value()))
+            floor_row.addWidget(floor_slider)
+            floor_row.addWidget(floor_label)
+            layout.addLayout(floor_row)
 
-        ceil_row = QHBoxLayout()
-        ceil_row.addWidget(QLabel("Ceiling"))
-        ceil_slider = QSlider(Qt.Orientation.Horizontal)
-        ceil_slider.setRange(0, 100)
-        ceil_slider.setValue(ceil)
-        ceil_label = QLabel(f"{ceil}%")
-        ceil_slider.valueChanged.connect(lambda v: (preview_raw(display_id, v), ceil_label.setText(f"{v}%")))
-        ceil_slider.sliderReleased.connect(lambda: set_config_value(f"CEIL_{display_id}", ceil_slider.value()))
-        ceil_row.addWidget(ceil_slider)
-        ceil_row.addWidget(ceil_label)
-        layout.addLayout(ceil_row)
+            ceil_row = QHBoxLayout()
+            ceil_row.addWidget(QLabel("Ceiling"))
+            ceil_slider = QSlider(Qt.Orientation.Horizontal)
+            ceil_slider.setRange(0, 100)
+            ceil_slider.setValue(ceil)
+            ceil_label = QLabel(f"{ceil}%")
+            ceil_slider.valueChanged.connect(lambda v: (preview_raw(display_id, v), ceil_label.setText(f"{v}%")))
+            ceil_slider.sliderReleased.connect(lambda: set_config_value(f"CEIL_{cal_key}", ceil_slider.value()))
+            ceil_row.addWidget(ceil_slider)
+            ceil_row.addWidget(ceil_label)
+            layout.addLayout(ceil_row)
+
+        if swdim != "na" and connector:
+            swdim_box = QCheckBox("Software dimming (disable DDC/CI hardware control)")
+            swdim_box.setChecked(swdim == "on")
+            swdim_box.setToolTip(
+                "Dims by scaling colors in the compositor instead of the "
+                "monitor's backlight: works when DDC/CI doesn't, and can go "
+                "darker than the hardware range, but saves no power. Takes a "
+                "moment to apply; reopen this window to see the new state."
+            )
+            target = display_id if display_id != "-" else connector
+            swdim_box.toggled.connect(lambda on: set_software_dimming(target, on))
+            layout.addWidget(swdim_box)
 
         layout.addWidget(_separator())
         return row
+
+
+class _MinuteSpinBox(QSpinBox):
+    """0-59 spinbox that zero-pads its display so schedule times read as
+    clock times (19:05, not 19:5)."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.setRange(0, 59)
+
+    def textFromValue(self, value: int) -> str:
+        return f"{value:02d}"
 
 
 def _bold(label: QLabel) -> QLabel:
