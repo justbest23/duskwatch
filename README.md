@@ -16,12 +16,19 @@ If you also have KDE's own Night Color enabled with its own schedule, the two ca
 
 ### `kwin-scripts/nightcolor-fullscreen-inhibit`
 
-A KWin script that watches for fullscreen windows — both true fullscreen (`_NET_WM_STATE_FULLSCREEN`) and borderless-fullscreen (many game engines just show an undecorated window sized to the output without setting the fullscreen hint) — and calls KWin's `org.kde.KWin.NightLight` D-Bus `inhibit()`/`uninhibit()` methods accordingly, the same mechanism video players use to suppress Night Color during playback.
+A KWin script that watches for fullscreen windows — both true fullscreen (`_NET_WM_STATE_FULLSCREEN`) and borderless-fullscreen (many game engines just show an undecorated window sized to the output without setting the fullscreen hint) — and has KWin's `org.kde.KWin.NightLight` inhibited/uninhibited accordingly, the same mechanism video players use to suppress Night Color during playback.
+
+It doesn't call `inhibit()`/`uninhibit()` itself: KWin's JS `callDBus()` marshals every JS number as a signed int32 ([KDE bug 486024](https://bugs.kde.org/show_bug.cgi?id=486024), fix [kwin!5695](https://invent.kde.org/plasma/kwin/-/merge_requests/5695) still unmerged as of KWin 6.7.2), so `uninhibit(uint cookie)` never dispatches from script ("Could not find slot NightLightAdaptor::uninhibit") and the inhibit would get stuck forever. Instead the script sends a boolean (which marshals fine) to the helper below.
+
+### `helper/nightlight-inhibit-helper.py`
+
+A tiny D-Bus-activated service (`org.duskwatch.NightLightInhibit`) that holds the actual Night Color inhibit on the KWin script's behalf, making the correctly-typed `uint32` calls that KWin JS can't. Started on demand by the bus on first call — nothing to enable. Failure-safe by construction: KWin auto-releases an inhibitor when its bus connection disappears, so if the helper ever crashes while inhibiting, Night Color recovers on its own instead of sticking.
 
 ### `brightness/`
 
 - `lib-config.sh` — shared config loader plus helpers for KDE's `org.kde.ScreenBrightness` D-Bus API (`org.kde.Solid.PowerManagement`, objects `/org/kde/ScreenBrightness/displayN`). This is the same interface System Settings and the hardware brightness keys use, and it transparently covers both real DDC/CI monitors and KWin's software-brightness fallback for displays where DDC/CI doesn't work at all — no need to shell out to `ddcutil` directly, and no bus numbers to configure.
-- `fade-brightness.sh <percent> <seconds>` — smoothly fades every display to a target brightness, applying each display's `FLOOR_<display>`/`CEIL_<display>` calibration from `duskwatch.conf` so a shared percentage can look visually consistent across monitors with very different raw ranges.
+- `fade-brightness.sh <percent> <seconds>` — smoothly fades every display to a target brightness, applying each display's floor/ceiling calibration from `duskwatch.conf` (stable label-derived `FLOOR_<key>`/`CEIL_<key>` entries, with legacy positional `FLOOR_displayN` still honored) so a shared percentage can look visually consistent across monitors with very different raw ranges.
+- `set-software-dimming.sh <displayN|connector> on|off` — forces KWin's software (gamma-based) brightness dimming for one display by disallowing DDC/CI on its output (`kscreen-doctor output.X.ddcCi.disallow`), or restores hardware DDC/CI control. KWin then force-enables its software SDR brightness fallback, which also makes a display with broken DDC/CI (re)appear in `org.kde.ScreenBrightness`. Software dimming scales RGB values compositor-side: it can go darker than the hardware range allows, but the backlight stays at full power, so it saves no energy. Persists across sessions.
 - `fade-temperature.sh <kelvin> <seconds>` — the color-temperature half of the pair above, fading KWin Night Color's `preview()` temperature to a target over the same duration using the same `FADE_STYLE`/`FADE_STEP_MINUTES` timing, so brightness and color move together.
 - `schedule-brightness.sh` — computes the correct brightness *and* color-temperature target from the current time of day and runs both fades together. Distinguishes an on-time trigger (does a slow fade, `FADE_DURATION`) from a catch-up trigger — e.g. the PC was off at 19:00 and logs in at 9am the next day, or you just edited the schedule to a time already in the past — where it snaps to the target in `SNAP_DURATION` instead of doing a slow fade hours after the fact.
 - `fullscreen-brightness-watch.sh` — watches the `inhibited` property on `org.kde.KWin.NightLight` (set by the KWin script above) and snaps brightness to full while a fullscreen app is active, restoring the scheduled level when it isn't.
@@ -29,8 +36,9 @@ A KWin script that watches for fullscreen windows — both true fullscreen (`_NE
 ### `systemd/`
 
 User-level systemd units wiring the above into your session:
-- `duskwatch-brightness-schedule.timer` / `.service` — fires at the configured evening/morning times (edit the `OnCalendar=` lines), `Persistent=true` and `OnStartupSec=30` so a missed trigger (PC off, late login) still gets caught up correctly on next session start.
+- `duskwatch-brightness-schedule.timer` / `.service` — wakes every 5 minutes (plus `OnStartupSec=30`, `Persistent=true`) and lets `schedule-brightness.sh` decide what to do; the actual evening/morning times live in `duskwatch.conf` (`EVENING_HOUR`/`EVENING_MINUTE`, `MORNING_HOUR`/`MORNING_MINUTE`), so schedule edits apply without touching the unit.
 - `duskwatch-fullscreen-brightness-watch.service` — the long-running watcher daemon.
+- `duskwatch-nightlight-inhibit-helper.service` — the Night Light inhibit helper; D-Bus activated (`Type=dbus`), so don't enable it — the bus starts it on demand.
 
 ### `plasmoid/`
 
@@ -41,7 +49,7 @@ A native Plasma 6 tray applet, split into a quick popup and a Settings window so
   - **Brightness** / **Color temperature** sliders for live manual override — brightness applies instantly and stays put (via `set-brightness-live.sh`); color temperature live-previews via `NightLight.preview()`/`stopPreview()` the same way KDE's own Night Color KCM slider does, and reverts to the schedule when you close the window.
   - **Schedule** — Evening/Morning hours (spinboxes) each with their own Brightness and Color temperature sliders, so the schedule targets are set the same way as the live sliders above. Writes to `duskwatch.conf` via `set-config.sh`.
   - **Fade** dropdown — named presets (Instant, Smooth 20 min/1 hour, Stepped every 5/15 min) or a custom minutes field (decimals allowed, up to 12h). Smooth interpolates in 30 even steps; Stepped jumps in fewer, more noticeable increments spaced a chosen number of minutes apart — see `fade-brightness.sh`'s `FADE_STYLE`.
-  - **Calibrate displays…** — opens a separate window listing every detected monitor with Floor/Ceiling sliders; dragging one live-previews on that single display (via `preview-raw.sh`, bypassing calibration so you're seeing the raw effect) and releasing commits `FLOOR_<display>`/`CEIL_<display>` to `duskwatch.conf`. Split out further since it's a one-time-per-monitor setup task, not a quick toggle.
+  - **Calibrate displays…** — opens a separate window listing every connected monitor. Displays with brightness control get Floor/Ceiling sliders; dragging one live-previews on that single display (via `preview-raw.sh`, bypassing calibration so you're seeing the raw effect) and releasing commits stable `FLOOR_<key>`/`CEIL_<key>` entries to `duskwatch.conf` (keyed to the monitor's label, not its positional `displayN` slot, so calibration survives the display list reindexing). Each display also gets a **Software dimming** checkbox (via `set-software-dimming.sh`), and monitors KWin currently can't control at all are still listed with that checkbox as the way to make them controllable. Split out since it's a one-time-per-monitor setup task, not a quick toggle.
   - **Edit configuration file…** — for anything not exposed above (fade catch-up window, display allowlist, etc).
 
 Note: the tray icon does **not** dock inside the System Tray's grouped icons. KDE's system tray only auto-shows its own hardcoded set of "known" items (volume, battery, network, etc.) — a third-party `Plasma/Applet` package gets silently dropped from that list even with `X-Plasma-NotificationArea: true` set and `Plasmoid.status` forced to `ActiveStatus`. Add it via "Add Widgets" and place it directly on a panel instead. Recommended for now — see the tray-app note below.
@@ -68,7 +76,11 @@ Edit `~/.config/duskwatch/duskwatch.conf` for your schedule, brightness/color-te
 
 ## Known limitations
 
-- KWin's Night Color inhibitor is cookie-based and, in testing, only the original calling connection could reliably release its own inhibit — if a script/process holding an inhibit dies uncleanly, Night Color can get stuck inhibited until you log out and back in.
+- KWin's Night Color inhibitor is keyed to the caller's D-Bus connection *and* cookie (`m_inhibitors.remove(serviceName, cookie)` in KWin's `nightlightdbusinterface.cpp`), so no external process can release an inhibit held by another connection — and an inhibit taken by a KWin script belongs to KWin's own connection, which never goes away. Combined with the `callDBus()` uint32 bug above, this is how Night Color used to get stuck inhibited until logout (the helper architecture eliminates the cause). If it ever happens again anyway, there's a recovery that doesn't need a logout — Night Light is a KWin plugin, and reloading it drops the whole inhibitor table:
+  ```
+  gdbus call --session --dest org.kde.KWin --object-path /Plugins --method org.kde.KWin.Plugins.UnloadPlugin nightlight
+  gdbus call --session --dest org.kde.KWin --object-path /Plugins --method org.kde.KWin.Plugins.LoadPlugin nightlight
+  ```
 - The `SetBrightness` OSD-suppression flag (`flags=1`) was found empirically, not from documentation — it could change in a future Plasma release.
 - The Plasmoid does not dock inside the System Tray's grouped icons — see the note in the `plasmoid/` section above. Currently the recommended default despite that, because of the tray-app issue below.
 - Real DDC/CI monitors can visibly ease into a new brightness over ~1-2s due to the monitor's own firmware, even though `SetBrightness` returns and the D-Bus `Brightness` property updates instantly (confirmed by polling it immediately after a call — no server-side ramping happens on Duskwatch's or KDE's end). Displays using KWin's software-brightness fallback apply changes instantly since there's no hardware round-trip. Nothing to fix here; it's how those monitors respond to a DDC brightness write.
