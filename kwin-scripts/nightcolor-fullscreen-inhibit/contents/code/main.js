@@ -18,18 +18,20 @@ function isFullscreenLike(client) {
            geo.x === screenGeo.x && geo.y === screenGeo.y;
 }
 
-var inhibitCookie = -1;
+// Inhibit/uninhibit is delegated to the duskwatch helper service instead of
+// calling org.kde.KWin.NightLight directly: callDBus() marshals JS numbers as
+// int32 (KDE bug 486024, fix unmerged), so uninhibit(uint cookie) can never
+// dispatch from here and the inhibit gets stuck until the compositor
+// restarts. Booleans marshal fine, and the helper is D-Bus activated, so this
+// call also starts it on demand.
+var inhibited = null; // null forces the initial state to be sent
 
 function updateForClient(client) {
     var active = isFullscreenLike(client);
-    if (active && inhibitCookie === -1) {
-        callDBus("org.kde.KWin", "/org/kde/KWin/NightLight", "org.kde.KWin.NightLight",
-            "inhibit", function(cookie) { inhibitCookie = cookie; });
-    } else if (!active && inhibitCookie !== -1) {
-        callDBus("org.kde.KWin", "/org/kde/KWin/NightLight", "org.kde.KWin.NightLight",
-            "uninhibit", inhibitCookie);
-        inhibitCookie = -1;
-    }
+    if (active === inhibited) return;
+    inhibited = active;
+    callDBus("org.duskwatch.NightLightInhibit", "/org/duskwatch/NightLightInhibit",
+        "org.duskwatch.NightLightInhibit", "SetInhibited", active);
 }
 
 function watch(client) {

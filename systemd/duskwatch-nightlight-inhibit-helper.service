@@ -1,0 +1,10 @@
+[Unit]
+Description=Duskwatch Night Light inhibit helper
+# No [Install] section: this unit is started on demand via D-Bus activation
+# (see the org.duskwatch.NightLightInhibit.service file install.sh generates),
+# not enabled at login.
+
+[Service]
+Type=dbus
+BusName=org.duskwatch.NightLightInhibit
+ExecStart=/usr/bin/python3 %h/Projects/duskwatch/helper/nightlight-inhibit-helper.py

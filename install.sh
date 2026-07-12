@@ -13,10 +13,27 @@ ln -sf "$REPO/kwin-scripts/nightcolor-fullscreen-inhibit" ~/.local/share/kwin/sc
 kwriteconfig6 --file kwinrc --group Plugins --key nightcolor-fullscreen-inhibitEnabled true
 qdbus6 org.kde.KWin /KWin org.kde.KWin.reconfigure
 
+# D-Bus activation file for the Night Light inhibit helper (see
+# helper/nightlight-inhibit-helper.py for why the KWin script can't call
+# uninhibit itself). Generated rather than symlinked because Exec= needs the
+# absolute repo path. SystemdService is required by dbus-broker, which only
+# activates services through systemd; Exec covers classic dbus-daemon.
+mkdir -p ~/.local/share/dbus-1/services
+cat > ~/.local/share/dbus-1/services/org.duskwatch.NightLightInhibit.service <<EOF
+[D-BUS Service]
+Name=org.duskwatch.NightLightInhibit
+Exec=$REPO/helper/nightlight-inhibit-helper.py
+SystemdService=duskwatch-nightlight-inhibit-helper.service
+EOF
+chmod +x helper/nightlight-inhibit-helper.py
+
 for unit in systemd/*.service systemd/*.timer; do
     ln -sf "$REPO/$unit" ~/.config/systemd/user/"$(basename "$unit")"
 done
 systemctl --user daemon-reload
+# Make the bus daemon rescan activation files (needed by dbus-broker; harmless
+# no-op elsewhere).
+busctl --user call org.freedesktop.DBus /org/freedesktop/DBus org.freedesktop.DBus ReloadConfig 2>/dev/null || true
 
 mkdir -p ~/.local/share/plasma/plasmoids
 rm -rf ~/.local/share/plasma/plasmoids/org.duskwatch.trayapplet
