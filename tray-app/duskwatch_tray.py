@@ -87,7 +87,7 @@ def set_mode(mode: str) -> None:
     subprocess.Popen([str(MODE_SCRIPT), mode])
 
 
-def set_config_value(key: str, value: int) -> None:
+def set_config_value(key: str, value: int | str) -> None:
     subprocess.Popen([str(CONFIG_SCRIPT), key, str(value)])
 
 
@@ -209,7 +209,7 @@ class SettingsDialog(QDialog):
     def __init__(self) -> None:
         super().__init__()
         self.setWindowTitle("Duskwatch Settings")
-        self.resize(420, 520)
+        self.resize(420, 560)
         self._loading_schedule = False
 
         layout = QVBoxLayout(self)
@@ -303,6 +303,23 @@ class SettingsDialog(QDialog):
         layout.addLayout(custom_row)
         self._set_custom_row_visible(False)
 
+        layout.addWidget(_bold(QLabel("Fullscreen")))
+        self.fullscreen_scope_check = QCheckBox(
+            "Brighten only the screen the fullscreen window is on"
+        )
+        self.fullscreen_scope_check.setToolTip(
+            "Unchecked, a fullscreen game or video brings every display up to full\n"
+            "brightness. Night Color pauses for all screens either way."
+        )
+        # clicked (not toggled) so reload_from_disk's setChecked can't write
+        # the config back - it only fires on real user interaction.
+        self.fullscreen_scope_check.clicked.connect(
+            lambda checked: set_config_value(
+                "FULLSCREEN_BRIGHTNESS_SCOPE", "active-screen" if checked else "all"
+            )
+        )
+        layout.addWidget(self.fullscreen_scope_check)
+
         layout.addWidget(_separator())
 
         edit_row = QHBoxLayout()
@@ -379,6 +396,9 @@ class SettingsDialog(QDialog):
             self.dimmed_temp_slider.setValue(int(config["DIMMED_TEMP"]))
         if "NORMAL_TEMP" in config:
             self.normal_temp_slider.setValue(int(config["NORMAL_TEMP"]))
+        self.fullscreen_scope_check.setChecked(
+            config.get("FULLSCREEN_BRIGHTNESS_SCOPE", "active-screen") != "all"
+        )
         self._loading_schedule = False
         self._sync_fade_selection(
             int(config.get("FADE_DURATION", 1200)),

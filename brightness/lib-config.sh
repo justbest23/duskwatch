@@ -14,6 +14,7 @@ FADE_STYLE=smooth
 FADE_STEP_MINUTES=5
 SNAP_DURATION=10
 ONTIME_WINDOW=300
+FULLSCREEN_BRIGHTNESS_SCOPE=active-screen
 
 CONFIG_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/duskwatch/duskwatch.conf"
 if [[ -f "$CONFIG_FILE" ]]; then
@@ -30,6 +31,27 @@ get_mode() {
     mode=$(grep '^MODE=' "$STATE_FILE" 2>/dev/null | tail -1)
     mode=${mode#MODE=}
     echo "${mode:-schedule}"
+}
+
+# The brightness percentage the schedule says a display should sit at right
+# now: mode override first, then plain time-of-day. Used by the fullscreen
+# watcher to restore a display it brightened. Deliberately ignores mid-fade
+# positions - a display leaving fullscreen snaps to the boundary target and
+# the next schedule tick takes it from there.
+schedule_target_pct() {
+    case "$(get_mode)" in
+        day) echo "$NORMAL_PCT"; return ;;
+        night) echo "$DIMMED_PCT"; return ;;
+    esac
+    local now morning evening
+    now=$(( 10#$(date +%H) * 60 + 10#$(date +%M) ))
+    morning=$(( MORNING_HOUR * 60 + MORNING_MINUTE ))
+    evening=$(( EVENING_HOUR * 60 + EVENING_MINUTE ))
+    if (( now >= morning && now < evening )); then
+        echo "$NORMAL_PCT"
+    else
+        echo "$DIMMED_PCT"
+    fi
 }
 
 SB_DEST=org.kde.Solid.PowerManagement

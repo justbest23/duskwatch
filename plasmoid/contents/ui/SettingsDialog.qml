@@ -32,6 +32,8 @@ Kirigami.ApplicationWindow {
     // a config reload rather than from the user actually touching a field.
     property bool loadingSchedule: false
 
+    property string fullscreenScope: "active-screen"
+
     property int fadeDurationSeconds: 1200
     property string fadeStyle: "smooth"
     property int fadeStepMinutes: 5
@@ -104,6 +106,7 @@ Kirigami.ApplicationWindow {
         fadeDurationSeconds = parseInt(find("FADE_DURATION", fadeDurationSeconds))
         fadeStyle = find("FADE_STYLE", fadeStyle)
         fadeStepMinutes = parseInt(find("FADE_STEP_MINUTES", fadeStepMinutes)) || fadeStepMinutes
+        fullscreenScope = find("FULLSCREEN_BRIGHTNESS_SCOPE", fullscreenScope)
         loadingSchedule = false
         syncFadeSelection()
     }
@@ -399,6 +402,28 @@ Kirigami.ApplicationWindow {
                     text: i18n("min (up to %1h)", Math.round(dialog.maxCustomFadeMinutes / 60))
                     opacity: 0.6
                 }
+            }
+
+            PlasmaComponents3.Label {
+                text: i18n("Fullscreen")
+                font.bold: true
+                Layout.topMargin: Kirigami.Units.smallSpacing
+            }
+            PlasmaComponents3.CheckBox {
+                Layout.fillWidth: true
+                text: i18n("Brighten only the screen the fullscreen window is on")
+                checked: dialog.fullscreenScope !== "all"
+                onToggled: {
+                    dialog.fullscreenScope = checked ? "active-screen" : "all"
+                    dialog.setConfigValue("FULLSCREEN_BRIGHTNESS_SCOPE", dialog.fullscreenScope)
+                }
+            }
+            PlasmaComponents3.Label {
+                text: i18n("Unchecked, a fullscreen game or video brings every display up to full brightness. Night Color pauses for all screens either way.")
+                wrapMode: Text.WordWrap
+                Layout.fillWidth: true
+                opacity: 0.6
+                font.pointSize: Kirigami.Theme.smallFont.pointSize
             }
 
             Kirigami.Separator {

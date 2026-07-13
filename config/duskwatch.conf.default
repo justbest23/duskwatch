@@ -46,6 +46,14 @@ FADE_STEP_MINUTES=5
 # on-time trigger (slow fade); otherwise it's a catch-up (fast snap).
 ONTIME_WINDOW=300
 
+# Which displays get brightened to NORMAL_PCT while a fullscreen/borderless
+# window (game, video) is up. "active-screen" (default) brightens only the
+# display(s) the fullscreen window is actually on and leaves the others
+# alone; "all" brightens every display. Night Color pausing is unaffected -
+# it's compositor-global either way, since KWin has no per-output color
+# temperature. Also settable from the tray widgets' Settings dialog.
+FULLSCREEN_BRIGHTNESS_SCOPE=active-screen
+
 # Per-display calibration: monitors vary a lot in perceived brightness at the
 # same raw percentage. A schedule target of e.g. 30% is mapped through each
 # display's own floor/ceiling range (default 0/100) before being applied, so

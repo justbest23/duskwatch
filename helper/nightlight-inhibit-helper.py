@@ -26,12 +26,21 @@ INTROSPECTION_XML = """
     <method name="SetInhibited">
       <arg type="b" name="inhibited" direction="in"/>
     </method>
+    <method name="SetFullscreenOutputs">
+      <arg type="s" name="outputs" direction="in"/>
+    </method>
+    <property name="FullscreenOutputs" type="s" access="read"/>
   </interface>
 </node>
 """
 
 session_bus = Gio.bus_get_sync(Gio.BusType.SESSION, None)
 cookie = None
+# Comma-joined connector names with a fullscreen window ("DP-2,HDMI-A-1"),
+# "*" for "all outputs" (legacy SetInhibited callers, which can't say which
+# output), "" for none. Republished as the FullscreenOutputs property so
+# fullscreen-brightness-watch.sh can brighten just the affected screens.
+fullscreen_outputs = ""
 
 
 def call_nightlight(method, params=None):
@@ -53,10 +62,36 @@ def set_inhibited(inhibited):
             cookie = None
 
 
+def set_fullscreen_outputs(outputs):
+    global fullscreen_outputs
+    if outputs == fullscreen_outputs:
+        return
+    fullscreen_outputs = outputs
+    # Publish the new set before touching Night Light, so brightness keeps
+    # working even if the NightLight interface is unavailable and the inhibit
+    # call below fails.
+    session_bus.emit_signal(
+        None, OBJECT_PATH, "org.freedesktop.DBus.Properties", "PropertiesChanged",
+        GLib.Variant("(sa{sv}as)", (
+            "org.duskwatch.NightLightInhibit",
+            {"FullscreenOutputs": GLib.Variant("s", fullscreen_outputs)},
+            [],
+        )))
+    set_inhibited(bool(fullscreen_outputs))
+
+
 def handle_method_call(connection, sender, path, interface, method, params, invocation):
-    if method == "SetInhibited":
+    if method == "SetFullscreenOutputs":
         try:
-            set_inhibited(params.unpack()[0])
+            set_fullscreen_outputs(params.unpack()[0])
+            invocation.return_value(None)
+        except GLib.Error as e:
+            invocation.return_dbus_error("org.duskwatch.NightLightInhibit.Error", str(e))
+    elif method == "SetInhibited":
+        # Legacy boolean form (pre-per-screen KWin script): no output info,
+        # so treat it as "all outputs".
+        try:
+            set_fullscreen_outputs("*" if params.unpack()[0] else "")
             invocation.return_value(None)
         except GLib.Error as e:
             invocation.return_dbus_error("org.duskwatch.NightLightInhibit.Error", str(e))
@@ -64,8 +99,15 @@ def handle_method_call(connection, sender, path, interface, method, params, invo
         invocation.return_dbus_error("org.freedesktop.DBus.Error.UnknownMethod", method)
 
 
+def handle_get_property(connection, sender, path, interface, prop):
+    if prop == "FullscreenOutputs":
+        return GLib.Variant("s", fullscreen_outputs)
+    return None
+
+
 node_info = Gio.DBusNodeInfo.new_for_xml(INTROSPECTION_XML)
-session_bus.register_object(OBJECT_PATH, node_info.interfaces[0], handle_method_call, None, None)
+session_bus.register_object(OBJECT_PATH, node_info.interfaces[0], handle_method_call,
+                            handle_get_property, None)
 
 loop = GLib.MainLoop()
 Gio.bus_own_name_on_connection(session_bus, BUS_NAME, Gio.BusNameOwnerFlags.NONE,
