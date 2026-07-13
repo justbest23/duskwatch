@@ -23,6 +23,10 @@ TARGET=$1
 DURATION=${2:-600}
 (( DURATION < 1 )) && DURATION=1
 
+# A newer fade supersedes any still-running one (leaves a paired
+# fade-temperature alone - that's the other half of this same transition).
+kill_running_fades '[f]ade-brightness\.sh'
+
 declare -A CURRENT MAX TARGET_RAW
 for display in $(sb_displays); do
     max=$(sb_get "$display" MaxBrightness)

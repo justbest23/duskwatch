@@ -1,0 +1,10 @@
+[Unit]
+Description=Duskwatch: watch duskwatch.conf and re-apply the schedule on edits
+
+[Path]
+# PathChanged fires on close-after-write and on rename-into-place, which
+# covers both set-config.sh (sed -i renames) and hand edits from an editor.
+PathChanged=%h/.config/duskwatch/duskwatch.conf
+
+[Install]
+WantedBy=default.target

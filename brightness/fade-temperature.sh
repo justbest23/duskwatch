@@ -25,6 +25,10 @@ TARGET=$1
 DURATION=${2:-600}
 (( DURATION < 1 )) && DURATION=1
 
+# A newer fade supersedes any still-running one (leaves a paired
+# fade-brightness alone - that's the other half of this same transition).
+kill_running_fades '[f]ade-temperature\.sh'
+
 NL_DEST=org.kde.KWin
 NL_PATH=/org/kde/KWin/NightLight
 NL_IFACE=org.kde.KWin.NightLight

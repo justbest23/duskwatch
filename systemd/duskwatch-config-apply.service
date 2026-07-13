@@ -1,0 +1,14 @@
+[Unit]
+Description=Duskwatch: re-apply the schedule after a config edit
+
+[Service]
+Type=oneshot
+# A widget slider drag writes the file once per movement tick - wait a beat
+# so the burst coalesces into one re-apply instead of a restart storm.
+ExecStartPre=/usr/bin/sleep 1
+# restart (not start): the schedule service may be sitting in "activating"
+# for hours while a long fade runs, and it must be killed and re-run so the
+# fresh config actually gets read. --no-block: this unit has to exit
+# immediately so the path unit can fire again on the next edit rather than
+# queueing behind a multi-hour fade.
+ExecStart=/usr/bin/systemctl --user restart --no-block duskwatch-brightness-schedule.service

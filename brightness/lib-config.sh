@@ -33,6 +33,20 @@ get_mode() {
     echo "${mode:-schedule}"
 }
 
+# Kill running fade processes matching PATTERN so at most one fade is ever
+# writing to a display - overlapping runs (timer tick + mode switch + config
+# edit) otherwise fight write-for-write until the older one ends. Callers
+# pass a bracket pattern ('[f]ade-brightness\.sh') so pgrep -f can't match
+# the invoking shell's own eval'd command line; $$ is excluded so a fade
+# script can safely call this about its own kind on startup.
+kill_running_fades() {
+    local pattern=$1 pid
+    for pid in $(pgrep -f "$pattern"); do
+        [[ "$pid" != "$$" ]] && kill "$pid" 2>/dev/null
+    done
+    return 0
+}
+
 # The brightness percentage the schedule says a display should sit at right
 # now: mode override first, then plain time-of-day. Used by the fullscreen
 # watcher to restore a display it brightened. Deliberately ignores mid-fade

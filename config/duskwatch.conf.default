@@ -1,8 +1,13 @@
 # Duskwatch shared config. Copy to ~/.config/duskwatch/duskwatch.conf and edit -
 # that copy is what gets read; this file is just the shipped defaults/reference.
-# All values here can be changed live: the schedule checker re-reads this file
-# every time it runs (every few minutes), so edits apply within minutes rather
-# than needing a service restart.
+# All values here can be changed live: with duskwatch-config-apply.path
+# enabled, saving this file re-applies the schedule immediately (superseding
+# any fade in progress); the periodic schedule timer re-reads it every few
+# minutes as a fallback either way. Only the fullscreen brightness watcher
+# caches settings at startup - restart
+# duskwatch-fullscreen-brightness-watch.service after changing
+# FULLSCREEN_BRIGHTNESS_SCOPE or calibration if you want it picked up there
+# too.
 
 EVENING_HOUR=19
 EVENING_MINUTE=0

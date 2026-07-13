@@ -27,7 +27,7 @@ SystemdService=duskwatch-nightlight-inhibit-helper.service
 EOF
 chmod +x helper/nightlight-inhibit-helper.py
 
-for unit in systemd/*.service systemd/*.timer; do
+for unit in systemd/*.service systemd/*.timer systemd/*.path; do
     ln -sf "$REPO/$unit" ~/.config/systemd/user/"$(basename "$unit")"
 done
 systemctl --user daemon-reload
@@ -45,6 +45,7 @@ echo "Installed. Edit ~/.config/duskwatch/duskwatch.conf to set your schedule,"
 echo "brightness levels, and per-display calibration."
 echo "Then enable the timers/services you want, e.g.:"
 echo "  systemctl --user enable --now duskwatch-brightness-schedule.timer"
+echo "  systemctl --user enable --now duskwatch-config-apply.path"
 echo "  systemctl --user enable --now duskwatch-fullscreen-brightness-watch.service"
 echo "Two tray widget options are installed - pick one, not both:"
 echo "  Plasmoid (recommended for now): add via your panel's 'Add Widgets'"
